@@ -2,9 +2,10 @@
 #include <bits/stdc++.h>
 
 #define RAYGUI_IMPLEMENTATION
-#include <raygui.h>
+#include "raygui.h"
 
 #include "raymath.h"
+#define __ratio 1.5
 
 #define GRID_SIZE 200
 #define GRID_COLOR LIGHTGRAY
@@ -20,7 +21,6 @@
 #define MAX_LEVEL 6
 #define byte unsigned char
 #define MAX_SOUNDS 10
-
 using namespace std;
 
 typedef struct Enemy{
@@ -152,8 +152,8 @@ vector<ObjectType> objTypes(1);
  int bulletTypeCount[4] = {100, 100, 100, 2};
  Bullet bullets[MAX_BULLETS];
  Sound gunSounds[MAX_GUNS][MAX_SOUNDS];
- float screenWidth = 1920 /*- 20*/;
- float screenHeight = 1080 /*- 60*/;
+ float screenWidth = 1920*__ratio /*- 20*/;
+ float screenHeight = 1080*__ratio /*- 60*/;
 
 
  bool Fired; int killCountImageCooldown = 0;
@@ -284,12 +284,12 @@ typedef struct Ranking{
         if(currP < rrList[currR])currR--;
     }
     void DrawRank(Vector2 pos, int upRank){
-        DrawTexturePro(rankk, {(currR/3)*32, (currR%3)*32, 32, 32}, {pos.x, pos.y, 100, 100}, {16,16}, 0, WHITE);
+        DrawTexturePro(rankk, {(currR/3)*32, (currR%3)*32, 32, 32}, {pos.x, pos.y, 100*__ratio, 100*__ratio}, {16,16}, 0, WHITE);
         string str = "Current rank: " + keyWordRank[currR/3] + " "; for(int i=-1; i<currR%3; i++)str += "I";
-        DrawText(str.c_str(), pos.x + 125, pos.y + 20, 20, BLACK );
-        DrawText(TextFormat("%d / %d ",currP - rrList[currR] - lastRankChange + (int)(min(upRank, 120)*lastRankChange/120.0f), rrList[currR+1]-rrList[currR]  ), pos.x + 125, pos.y + 45, 20, BLACK);
+        DrawText(str.c_str(), pos.x + 125*__ratio, pos.y + 20*__ratio, 20*__ratio, BLACK );
+        DrawText(TextFormat("%d / %d ",currP - rrList[currR] - lastRankChange + (int)(min(upRank, 120)*lastRankChange/120.0f), rrList[currR+1]-rrList[currR]  ), pos.x + 125*__ratio, pos.y + 45*__ratio, 20*__ratio, BLACK);
         string str2 = lastRankChange<0? "-" + to_string(abs(lastRankChange) - (int)(min(upRank, 120)*abs(lastRankChange)/120.0f)):"+"+to_string(lastRankChange - (int)(min(upRank, 120)*lastRankChange/120.0f));
-        if(upRank<120)DrawText(str2.c_str(), pos.x + 125, pos.y + 70, 20, BLACK);
+        if(upRank<120)DrawText(str2.c_str(), pos.x + 125*__ratio, pos.y + 70*__ratio, 20*__ratio, BLACK);
     }
 
 }Ranking;
@@ -308,7 +308,7 @@ void InitCamera(Camera2D *camera){
     camera->target = (Vector2){ 0 };
     camera->offset = (Vector2){ screenWidth / 2.0f, screenHeight / 2.0f };
     camera->rotation = 0.0f;
-    camera->zoom = 0.5f;
+    camera->zoom = 1.0f*__ratio*__ratio;
 }
 void UpgradeSkill(int index) {
     if (skills[index].level < MAX_LEVEL && pointsLeft > 0) {
@@ -324,9 +324,8 @@ void DrawSkillButton(Texture2D t, const char* text, bool isEnabled, float div, V
   const int buttonParts = 6;
 
   for (int i = 0; i < buttonParts; i++) {
-    // Calculate the source and destination rectangles
     Rectangle srcRec = {i * (float)buttonWidth, 0, buttonWidth, buttonHeight};
-    Rectangle dstRec = {position.x + i * buttonWidth, position.y, buttonWidth, buttonHeight};
+    Rectangle dstRec = {position.x + i * buttonWidth*__ratio, position.y, buttonWidth*__ratio, buttonHeight*__ratio};
 
 
     if (i<div) {
@@ -362,8 +361,8 @@ void DrawHealthBar(float x, float y, float width, float height, float healthPerc
 
     }
     const char* text = TextFormat("%.0f / %.0f", healthPercent/100.0f*hmax, hmax);
-    int textSize = 5;
-    if(drawText)DrawText(text, x+width*0.5f - MeasureText(text, textSize)/2, y+height*0.5f - textSize + 1, textSize, BLACK);
+    int textSize = 16*__ratio;
+    if(drawText)DrawText(text, x+width*0.5f - MeasureText(text, textSize)/2, y + height/2 - textSize/2 + 1, textSize, BLACK);
 
 }
 void InitBullets() {
@@ -384,7 +383,7 @@ void UpdateBullets(Enemy* enemies) {
 
 
             for(int j = 0; j < numEnemies; j++){
-                    float enemyRadius = (float)enemies[i].radius;
+                    float enemyRadius = (float)enemies[j].radius;
                 if(CheckCollisionCircles(bullets[i].position, bulletSize*2.0f, enemies[j].position, enemyRadius)){
                     if(enemies[j].active){
                             enemies[j].health -= gunDamage[gunID]*(1 + (skills[1].level)/2);
@@ -528,36 +527,30 @@ void UpdatePlayerMovement(int mapX, int mapY, float* playerX, float* playerY, fl
     float oldPlayerX = *playerX;
     float oldPlayerY = *playerY;
 
-    // Move and check collision on the x-axis
     *playerX += (1+skills[2].level/6)*playerSpeed * (IsKeyDown(KEY_D) - IsKeyDown(KEY_A));
     if (*playerX < 0)
         *playerX = 0;
     if (*playerX > mapX*2)
         *playerX = mapX*2;
 
-    // Update hitbox position
     hitbox.x = *playerX - hitbox.width / 2;
 
 
     if (CheckCollisionWithAnyObject(objs, hitbox)) {
         *playerX = oldPlayerX;
-        // Update hitbox position again after reverting player's position
         hitbox.x = *playerX - hitbox.width / 2 ;
     }
 
-    // Move and check collision on the y-axis
     *playerY -= (1+skills[2].level/6)* playerSpeed * (IsKeyDown(KEY_W) - IsKeyDown(KEY_S));
     if (*playerY < 0)
         *playerY = 0;
     if (*playerY > mapY*2)
         *playerY = mapY*2;
 
-    // Update hitbox position
     hitbox.y = *playerY - hitbox.height / 2;
 
     if (CheckCollisionWithAnyObject(objs, hitbox)) {
         *playerY = oldPlayerY;
-        // Update hitbox position again after reverting player's position
        hitbox.y = *playerY - hitbox.height / 2;
     }
 }
@@ -651,18 +644,12 @@ void ResetGun(){
 void DrawItem(Item item, Vector2 position){
 
 
-    DrawRectangleLines(position.x, position.y, 100, 100, BLACK);
-
-
-
-
-
-
+    DrawRectangleLines(position.x, position.y, 100*__ratio, 100*__ratio, BLACK);
     Texture2D icon = GunIcon[item.id];
-    DrawTextureEx(icon, (Vector2) { position.x+10, position.y }, 0, 0.7, WHITE);
-    DrawText(item.name, position.x + 90 - MeasureText(item.name, 20), position.y + 65, 20, BLACK);
+    DrawTextureEx(icon, (Vector2) { position.x+10*__ratio, position.y }, 0, 0.7*__ratio, WHITE);
+    DrawText(item.name, (position.x + 90*__ratio - MeasureText(item.name, 20*__ratio)), (position.y + 65*__ratio), 20*__ratio, BLACK);
     Color col = (item.purchased || item.price>numCollectedCoins)? RED : DARKGREEN;
-    DrawText(TextFormat("$%d", item.price), position.x + 10, position.y + 83, 15, col);
+    DrawText(TextFormat("$%d", item.price), (position.x + 10*__ratio), (position.y + 83*__ratio), 15*__ratio, col);
 
 }
 void BuyItem(Item* item, int id) {
@@ -685,7 +672,7 @@ void BuyItem(Item* item, int id) {
     }
 }
 void DrawDamageText(const DamageText* damageText) {
-    DrawText(damageText->text, damageText->position.x - 5, damageText->position.y, 10, Fade(damageText->color, damageText->alpha));
+    DrawText(damageText->text, damageText->position.x*__ratio - 5*__ratio, damageText->position.y*__ratio, 10*__ratio, Fade(damageText->color, damageText->alpha));
 }
 void UpdateDamageText(DamageText* damageText) {
     damageText->alpha -= 2;
@@ -728,8 +715,8 @@ void UpdateGrenade(Grenade *grenade){
 void PauseTick(){
     BeginDrawing();
     ShowCursor();
-    DrawText("Game Pause", screenWidth / 2 - MeasureText("Game Pause", 40) / 2, screenHeight / 2 - 440, 40, DARKGRAY);
-    if( GuiButton({screenWidth / 2 - 50,  screenHeight / 2 - 250, 100, 30},"Continue")){
+    DrawText("Game Pause", screenWidth / 2 - MeasureText("Game Pause", 40*__ratio) / 2, screenHeight / 2 - 440*__ratio, 40*__ratio, DARKGRAY);
+    if( GuiButton({screenWidth / 2 - 50*__ratio,  screenHeight / 2 - 250*__ratio, 100*__ratio, 30*__ratio},"Continue")){
 
         gameState = GAMEPLAY;
     }
@@ -738,24 +725,24 @@ void PauseTick(){
 }
 void MenuTick(){
     pointsUpAnimation++;
-    if(GuiButton({screenWidth/2 - 50, screenHeight/2 - 15, 100, 30}, "Play Game")){
+    if(GuiButton({screenWidth/2 - 50*__ratio, screenHeight/2, 100*__ratio*__ratio, 30*__ratio*__ratio}, "Play Game")){
         HideCursor();
         gameState = GAMEPLAY;
         SetMasterVolume(__masterVolume);
         WaveSpawn(0);
     }
-    GuiSliderBar({screenWidth/2 - 150, screenHeight/2 + 25, 300, 20}, "Master Volume", TextFormat("%.2f", __masterVolume), &__masterVolume, 0.0f, 1.0f);
+    GuiSliderBar({screenWidth/2 - 300*__ratio, screenHeight/2 + 75*__ratio, 700*__ratio, 20*__ratio}, "Master Volume", TextFormat("%.2f", __masterVolume), &__masterVolume, 0.0f, 1.0f);
     currentRank.UpdateRank();
 
     BeginDrawing();
     ClearBackground(RAYWHITE);
 
 
-    DrawTextEx(font, "Last Hunter Standing - Zombie Apocalypse v1.9.0",
-               {screenWidth / 2 - MeasureText("Last Hunter Standing - Zombie Apocalypse v1.9.0", 20) / 2, screenHeight / 2 - 60}
-               , 20, 1.5f, DARKGRAY);
+    DrawTextEx(font, " Last Hunter Standing - Zombie Apocalypse v1.9.0",
+               {screenWidth / 2 - MeasureText("Last Hunter Standing - Zombie Apocalypse v1.9.0", 40*__ratio) / 2, screenHeight / 2 - 60*__ratio}
+               , 40*__ratio, 3.0f*__ratio, DARKGRAY);
     //DrawText("Press Enter to Start", screenWidth / 2 - MeasureText("Press Enter to Start", 20) / 2, screenHeight / 2 + 10, 20, DARKGRAY);
-    currentRank.DrawRank({25, 50}, pointsUpAnimation);
+    currentRank.DrawRank({50*__ratio, 100*__ratio}, pointsUpAnimation);
     DrawCrosshair();
     EndDrawing();
 }
@@ -780,9 +767,9 @@ void GameOverTick(){
     BeginDrawing();
     DrawRectangleRec((Rectangle){0, 0, screenWidth, screenHeight}, (Color){255, 0, 0, 3});
 
-    DrawText("You Lose!", screenWidth / 2 - MeasureText("You Lose!", 40) / 2, screenHeight / 2 - 40, 40, DARKGRAY);
-    DrawText("Press Enter to play again", screenWidth / 2 - MeasureText("Press Enter to play again", 20) / 2, screenHeight / 2 + 10, 20, DARKGRAY);
-    DrawText("Pts: %d", screenWidth / 2 - MeasureText("Press Enter to play again", 20) / 2, screenHeight / 2 + 10, 20, DARKGRAY);
+    DrawText("You Lose!", screenWidth / 2 - MeasureText("You Lose!", 40*__ratio) / 2, screenHeight / 2 - 40*__ratio, 40*__ratio, DARKGRAY);
+    DrawText("Press Enter to play again", screenWidth / 2 - MeasureText("Press Enter to play again", 20*__ratio) / 2, screenHeight / 2 + 10*__ratio, 20*__ratio, DARKGRAY);
+    DrawText("Pts: %d", screenWidth / 2 - MeasureText("Press Enter to play again", 20*__ratio) / 2, screenHeight / 2 + 10*__ratio, 20*__ratio, DARKGRAY);
     DrawCrosshair();
     EndDrawing();
 
@@ -792,7 +779,7 @@ void GameOverTick(){
 }
 void InitSkillButtons(){
     for (int i = 0; i < MAX_SKILLS; i++) {
-    skillButtons[i] = (Rectangle){25.0f, 700.0f + 35*i, 120.0f, 26.0f}; // 20x26 for 1 seg
+    skillButtons[i] = (Rectangle){25.0f, (700.0f*__ratio + 35*i*__ratio), 120.0f*__ratio, 26.0f*__ratio}; // 20x26 for 1 seg
     }
 }
 void InitGrenades(){
@@ -846,11 +833,10 @@ void UpdateShop(){
         //--
         Vector2 mousePosition = GetMousePosition();
         showShop = (1-showShop)*IsKeyPressed(KEY_C) + showShop*!IsKeyPressed(KEY_C);
-        //Shop --
         if (IsMouseButtonPressed(MOUSE_LEFT_BUTTON) && showShop) {
 
                 for (int i = 0; i < MAX_ITEMS; i++) {
-                    if (CheckCollisionPointRec(mousePosition, (Rectangle) { (i%5) * 110.0f + 50, 50.0f + (i/5)*110.0f, 100.0f, 100.0f })) {
+                    if (CheckCollisionPointRec(mousePosition, (Rectangle) { (i%5) * 110.0f*__ratio + 50*__ratio, 50.0f*__ratio + (i/5)*110.0f*__ratio, 100.0f*__ratio, 100.0f*__ratio })) {
                         mouseInCombat = 0;
                         selectedItem = i;
                         break;
@@ -862,7 +848,6 @@ void UpdateShop(){
                     selectedItem = -1;
                 }
 
-            //--
         }
 }
 void UpdateCamera(Camera2D *camera){
@@ -930,7 +915,6 @@ void LoadFireUpdate(){
             if(mouseInCombat && Fired && CoolDown>cooldown[gunID]+ExtraCoolDownBurstT&& (int)ammoLeftOnGun[gunID] >= 1.0f && !reloading){
                 if(gunType[gunID]!=4){
                     ShootBullet(playerPointerAngle +45);
-                    // Play the first available sound
                     for (int i = 0; i < MAX_SOUNDS; i++) {
                         if (!IsSoundPlaying(gunSounds[gunID][i])) {
                             PlaySound(gunSounds[gunID][i]);
@@ -942,7 +926,6 @@ void LoadFireUpdate(){
                 }
                 else{
                     ShootSpread(playerPointerAngle + 45, spread[gunID], shotgunBullet[gunID]);
-                    // Play the first available sound
                     for (int i = 0; i < MAX_SOUNDS; i++) {
                         if (!IsSoundPlaying(gunSounds[gunID][i])) {
                             PlaySound(gunSounds[gunID][i]);
@@ -1028,27 +1011,27 @@ void DrawDamageTexts(){
 }
 void DrawUI(Vector2 newWaveTextPosition){
 
-            DrawText(TextFormat("$%.0f", numCollectedCoins),  screenWidth - 345, screenHeight - 105, 20, BLACK);
-            DrawText(TextFormat("%d / %d", (int)ammoLeft, gunMaxAmmo[gunID]*(1 + (skills[4].level)/3)), screenWidth - 345, screenHeight - 130, 20, BLACK);
-            DrawText(TextFormat("%d Kills", lastKillCount),  screenWidth -  345, screenHeight - 155, 20, {0,0,0, killCountImageCooldown});
-            DrawText(TextFormat("Accuracy %.2f%", accuracy*100.0f),  screenWidth -  345, screenHeight - 180, 20, BLACK);
+            DrawText(TextFormat("$%.0f", numCollectedCoins),  screenWidth - 345*__ratio, screenHeight - 105*__ratio, 20*__ratio, BLACK);
+            DrawText(TextFormat("%d / %d", (int)ammoLeft, gunMaxAmmo[gunID]*(1 + (skills[4].level)/3)), screenWidth - 345*__ratio, screenHeight - 130*__ratio, 20*__ratio, BLACK);
+            DrawText(TextFormat("%d Kills", lastKillCount),  screenWidth -  345*__ratio, screenHeight - 155*__ratio, 20*__ratio, {0,0,0, killCountImageCooldown});
+            DrawText(TextFormat("Accuracy %.2f%", accuracy*100.0f),  screenWidth -  345*__ratio, screenHeight - 180*__ratio, 20*__ratio, BLACK);
             if(showShop)
-            for (int i = 0; i < MAX_ITEMS; i++) DrawItem(items[i], (Vector2) { (i%5) * 110.0f + 50, 50.0f + (i/5)*110.0f });
+            for (int i = 0; i < MAX_ITEMS; i++) DrawItem(items[i], (Vector2) { (i%5) * 110.0f*__ratio + 50*__ratio, 50.0f*__ratio + (i/5)*110.0f*__ratio });
             else
-            DrawTexturePro(iconTexture, (Rectangle){0, 0, 64, 64}, (Rectangle){50.0f, 50.0f, 100.0f, 100.0f}, (Vector2){ 0 }, 0, WHITE);
-            if(reloading) DrawText(TextFormat("Reloading (%d%)", (int)100*reload/gunReload[gunID]), screenWidth/2 - 200, screenHeight/2 - 150, 50, BLACK);
-            if(waveTick>0.01f)DrawText(TextFormat("Coming: Wave %d", WaveCount), newWaveTextPosition.x, newWaveTextPosition.y, 20.0f, BLACK);
+            DrawTexturePro(iconTexture, (Rectangle){0, 0, 64, 64}, (Rectangle){50.0f*__ratio, 50.0f*__ratio, 100.0f*__ratio, 100.0f*__ratio}, (Vector2){ 0 }, 0, WHITE);
+            if(reloading) DrawText(TextFormat("Reloading (%d%)", (int)100*reload/gunReload[gunID]), screenWidth/2 - 200*__ratio, screenHeight/2 - 150*__ratio, 50*__ratio, BLACK);
+            if(waveTick>0.01f)DrawText(TextFormat("Coming: Wave %d", WaveCount), newWaveTextPosition.x, newWaveTextPosition.y, 20.0f*__ratio, BLACK);
             for(int k=0; k<4; k++){
-                DrawRectangle(20 + k*100, screenHeight - 100, 50, 50, ammoColor[k]);
-                DrawText(TextFormat("%d", bulletTypeCount[k]), 30 + k*100, screenHeight - 83, 15, BLACK);
-                DrawRectangleLines(20 + k*100, screenHeight - 100, 50, 50, BLACK);
+                DrawRectangle(20*__ratio + k*100*__ratio, screenHeight - 100*__ratio, 50*__ratio, 50*__ratio, ammoColor[k]);
+                DrawText(TextFormat("%d", bulletTypeCount[k]), 30*__ratio + k*100*__ratio, screenHeight - 83*__ratio, 15*__ratio, BLACK);
+                DrawRectangleLines(20*__ratio + k*100*__ratio, screenHeight - 100*__ratio, 50*__ratio, 50*__ratio, BLACK);
             }
 
 
             for (int i = 0; i < MAX_SKILLS; i++) {
                 if (IsMouseHoverRectangle(skillButtons[i]) && pointsLeft > 0) {
                         mouseInCombat = 0;
-                    DrawText(skills[i].description, GetMouseX() + 50, GetMouseY(), 20, BLACK);
+                    DrawText(skills[i].description, GetMouseX() + 50, GetMouseY(), 20*__ratio, BLACK);
                     if (IsMouseButtonPressed(MOUSE_LEFT_BUTTON)) {
                         UpgradeSkill(i);
                     }
@@ -1064,8 +1047,8 @@ void DrawUI(Vector2 newWaveTextPosition){
             }
 
 
-            DrawText(TextFormat("P-Skill left: %d", pointsLeft), 25, screenHeight - 40, 20, BLACK);
-            DrawText(TextFormat("Grenade: %d, on world %d", grenadeLeft, numGrenade), 250, screenHeight - 40, 20, BLACK);
+            DrawText(TextFormat("P-Skill left: %d", pointsLeft), 25*__ratio, screenHeight - 40*__ratio, 20*__ratio, BLACK);
+            DrawText(TextFormat("Grenade: %d, on world %d", grenadeLeft, numGrenade), 250*__ratio, screenHeight - 40*__ratio, 20*__ratio, BLACK);
 
 }
 void DrawObjects(){
@@ -1085,7 +1068,6 @@ void DrawObjects(){
 
 }
 void AddObjectToChunk(int id, Vector2 position, vector<vector<vector<Object>>> &chunks) {
-    // Calculate the chunk coordinates
     Object obj;
     obj.id = id;
     obj.type = objTypes[obj.id];
@@ -1107,15 +1089,12 @@ bool IsPositionFree(Vector2 position, vector<vector<vector<Object>>> &objs, floa
     int chunkX = position.x / GRID_SIZE;
     int chunkY = position.y / GRID_SIZE;
 
-    // Check the player's chunk and the surrounding chunks
     for (int dx = -1; dx <= 1; dx++) {
         for (int dy = -1; dy <= 1; dy++) {
             int checkChunkX = chunkX + dx;
             int checkChunkY = chunkY + dy;
 
-            // Make sure the chunk is within the grid
             if (checkChunkX > 0 && checkChunkX < objs.size()-1 && checkChunkY > 0 && checkChunkY < objs[checkChunkX].size()-1) {
-                // Check all objects in the chunk
                 for (Object &obj : objs[checkChunkX][checkChunkY]) {
                     if (CheckCollisionCircles(position, enemyRadius, obj.position, obj.calculateHitbox().width/2)) {
                         return false;
@@ -1134,7 +1113,6 @@ int main(){
     freopen("rank.txt", "r", stdin);
     cin >> currentRank.currR >> currentRank.currP;
     fclose(stdin);
-    //Setup Components
     for(int i=0; i<MAX_GUNS; i++){
         GunIcon[i] = LoadTexture(items[i].iconPath);
         }
@@ -1147,11 +1125,13 @@ int main(){
 
     SetWindowIcon(LoadImage("./Image/Icon.png"));
     rankk = LoadTexture("./Gui/rank.png");
+    Texture2D logotechno = LoadTexture("./Image/TNGlogo.png");
     InitAudioDevice();
     SetMasterVolume(__masterVolume);
     ResetGun();
     font = LoadFontEx("pixelplay.png", 20, 0, 0);
-
+    GuiSetStyle(DEFAULT, TEXT_SIZE, 20*__ratio);
+    GuiSetStyle(DEFAULT, TEXT_SPACING, 2*__ratio);
     Camera2D camera = { 0 };
     InitCamera(&camera);
     SetTargetFPS(60);
@@ -1184,19 +1164,20 @@ int main(){
         case PAUSE:
             PauseTick(); break;
         case MENU:
-            MenuTick(); break;
+            MenuTick();
+            DrawTextureEx(logotechno, {screenWidth - 200*__ratio, 75*__ratio}, 0, 1/2.0f, WHITE);
+             break;
         case GAMEOVER:
             GameOverTick(); break;
         case GAMEPLAY:
             if(bulletShot > 0)accuracy = (float)bulletHits/(float)bulletShot;
             else accuracy = 1.0f;
             killCount = 0; killCountImageCooldown--; killCountImageCooldown = max(killCountImageCooldown, 0);
-            //Mouse
             Vector2 mousePosition = GetMousePosition(); mouseInCombat = 1;
             playerPointerAngle = atan2(mousePosition.y - screenHeight/2, mousePosition.x - screenWidth/2) * RAD2DEG - 45 ;
 
             if(IsKeyPressed(KEY_T))ToggleFullscreen();
-            //Skills
+            if(IsKeyPressed(KEY_P))pointsLeft++;
             InitSkillButtons();
 
             InitGrenades();
@@ -1206,7 +1187,6 @@ int main(){
             UpdateShop();
 
 
-            //Pause
             if (IsKeyPressed(KEY_ESCAPE))gameState = PAUSE;
 
 
@@ -1257,7 +1237,7 @@ int main(){
 
             EndMode2D();
 
-            DrawHealthBar(screenWidth/1.0f - 350, screenHeight/1.0f - 70, 300, 30, (playerHealth/(playerMaxHealth*skills[5].level))*100, playerMaxHealth*skills[5].level, 1);
+            DrawHealthBar(screenWidth/1.0f - 350*__ratio, screenHeight/1.0f - 70*__ratio, 300*__ratio, 30*__ratio, (playerHealth/(playerMaxHealth*skills[5].level))*100, playerMaxHealth*skills[5].level, 1);
 
 
 
