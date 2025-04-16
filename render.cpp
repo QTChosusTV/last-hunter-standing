@@ -134,9 +134,10 @@ void DrawCoins() {
 void DrawEnemies() {
     for (const auto& enemy : enemies) {
         DrawCircleV(enemy.position, enemy.radius, enemy.color);
+        //DrawText(TextFormat("%d/%d", enemy.health, enemy.healthMax), enemy.position.x, enemy.position.y, 20, RED);
         if (enemy.health < enemy.healthMax) {
-            DrawHealthBar(enemy.position.x - 17.5f, enemy.position.y - 10, 35, 5,
-                          (enemy.health / enemy.healthMax) * 100, enemy.healthMax, 0);
+            DrawHealthBar(enemy.position.x - 17.5f, enemy.position.y - 10.0f, 35, 5,
+                          ((float)enemy.health / (float)enemy.healthMax) * 100.0f, (float)enemy.healthMax, 0);
         }
     }
 
@@ -229,7 +230,9 @@ void DrawCrosshair() {
 }
 
 void DrawHealthBar(float x, float y, float width, float height, float healthPercent, float hmax, bool drawText) {
-    float currentWidth = width * (healthPercent / 100);
+
+    float currentWidth = width * (healthPercent / 100.0f);
+    //cout << currentWidth << "\n";
     Color barColor = {(unsigned char)(255 * (100 - healthPercent) / 100), (unsigned char)(255 * healthPercent / 100), 0, 255};
     barColor = ColorContrast(barColor, 0.9f);
     Rectangle rect = {x, y, width, height};
