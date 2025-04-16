@@ -57,12 +57,13 @@ void UpdateBullets() {
     }
 }
 void ShootBullet(Vector2 position, float shootingAngleDegrees, int shootingError) {
+    bulletShot++;
     Bullet bullet;
     bullet.position = position;
     float shootingAngleRadians = DEG2RAD * (shootingAngleDegrees - shootingError + rand() % (shootingError*2 + 1));
     Vector2 shootingDirection = {cosf(shootingAngleRadians), sinf(shootingAngleRadians)};
     bullet.direction = Vector2Scale(shootingDirection, 5.0f);
-    bullet.damage = 10.0f;
+    bullet.damage = gunDamage[gunID];
     bullet.speed = 2.0f;
     bullet.lifeTime = 0;
     bullets.push_back(bullet);
