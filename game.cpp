@@ -135,6 +135,7 @@ void WaveSpawn() {
 
 void UpdateGameplay() {
     if (bulletShot > 0) accuracy = (float)bulletHits / (float)bulletShot;
+    cout << bulletHits << " - " << bulletShot << "\n";
     killCountImageCooldown = max(killCountImageCooldown - 1, 0);
     killCount = 0;
     Vector2 mousePosition = GetMousePosition();
@@ -265,13 +266,14 @@ void UpdateEnemies() {
         bool hit = false;
         for (auto bulletIt = bullets.begin(); bulletIt != bullets.end();) {
             if (CheckCollisionCircles(enemy.position, enemy.radius, bulletIt->position, 3.0f /*bulletSize = 3.0f*/ * 2.0f)) {
-                float damage = bulletIt->damage * (1 + skills[1].level / 2.0f);
+                float damageMultipler = (0.75f+(skills[1].level)/4.0f);
+                float damage = bulletIt->damage*damageMultipler*damageMultipler;
                 enemy.health -= damage;
                 enemy.position = Vector2Add(enemy.position, Vector2Scale(bulletIt->direction, bulletIt->speed * 1.0f));
                 bulletHits++;
                 if (numDamageTexts < 50) {
                     DamageText damageText;
-                    strcpy(damageText.text, TextFormat("%.1f", damage));
+                    strcpy(damageText.text, TextFormat("%.0f", damage));
                     damageText.position = enemy.position;
                     damageText.alpha = 255;
                     damageText.color = RED;
@@ -279,6 +281,7 @@ void UpdateEnemies() {
                     numDamageTexts++;
                 }
                 bulletIt = bullets.erase(bulletIt);
+                //bulletHits++;
                 hit = true;
                 break;
             } else {
