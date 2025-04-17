@@ -5,6 +5,8 @@
 #include "raylib.h"
 #include "raygui.h"
 
+//#define logFile cout
+
 using namespace std;
 
 // Global game state
@@ -71,8 +73,8 @@ float ammoLeftOnGun[MAX_GUNS] = {0};
 int bulletTypeCount[4] = {100, 100, 100, 2};
 int grenadeLeft = 0;
 int numGrenade = 0;
-Grenade grenades[MAX_BULLETS];
-Coin coins[MAX_COINS];
+deque<Grenade> grenades;
+deque<Coin> coins;
 deque<Enemy> enemies;
 deque<Bullet> bullets;
 Item items[MAX_ITEMS] = {
@@ -110,6 +112,7 @@ int cooldown[MAX_GUNS];
 int shotgunBullet[MAX_GUNS];
 int spread[MAX_GUNS];
 int ammotype[MAX_GUNS];
+ofstream logFile;
 map<string, int> m = {{"gun", 0}, {"ammo", 1}, {"other", 2}};
 Color ammoColor[4] = {GOLD, BLUE, GREEN, RED};
 int ammoBuyCount[4] = {10, 10, 10, 10};
@@ -128,7 +131,7 @@ int waveData[NUM_WAVES][NUM_ENEMY_TYPES] = {
 
 // Damage text variables
 int numDamageTexts = 0;
-DamageText damageTexts[50] = {0};
+deque<DamageText> damageTexts;
 
 // Ranking variables
 vector<int> rrList = {0, 25, 75, 160, 275, 440, 645, 905, 1215, 1580, 2005, 2490, 3045, 3665, 4335, 5120, 5955, 6870, 7865, 8940, 10000, 999999, 999999, 999999};
@@ -142,7 +145,8 @@ int main() {
     SetWindowIcon(LoadImage("./Image/Icon.png"));
     InitAudioDevice();
     SetMasterVolume(__masterVolume);
-    SetTargetFPS(60);
+    SetTargetFPS(6000);
+    logFile.open("log.txt");
     // Load resources
     font = LoadFontEx("pixelplay.png", 20, 0, 0);
     GuiSetStyle(DEFAULT, TEXT_SIZE, 20 * __ratio);
@@ -166,11 +170,6 @@ int main() {
         GunIcon[i] = LoadTexture(items[i].iconPath);
     }
 
-    // Initialize bullets and grenades
-    for (int i = 0; i < MAX_BULLETS; i++) {
-        InitGrenade(&grenades[i]);
-    }
-
     // Load kill streak sounds
     killStreak[0] = LoadSound("./SoundEffects/2.mp3");
     killStreak[1] = LoadSound("./SoundEffects/3.mp3");
@@ -179,6 +178,7 @@ int main() {
 
     // Main game loop
     while (!WindowShouldClose() || IsKeyPressed(KEY_ESCAPE)) {
+        logFile << "[FRAME] {\n";
         switch (gameState) {
             case GameState::MENU:
                 MenuTick();
@@ -194,6 +194,8 @@ int main() {
                 RenderGameplay();
                 break;
         }
+        logFile << "}\n\n";
+
     }
 
     // Save rank data
@@ -226,6 +228,6 @@ int main() {
     UnloadFont(font);
     CloseAudioDevice();
     CloseWindow();
-
+    logFile.close();
     return 0;
 }
