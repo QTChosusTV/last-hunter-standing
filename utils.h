@@ -17,8 +17,6 @@ void SpawnCoin(Vector2 position, int type);
 void UpdateCoins();
 void UpdateShop();
 void BuyItem(Item* item, int id);
-void InitGrenade(Grenade* grenade);
-void UpdateGrenade(Grenade* grenade);
 void UpdateGrenades();
 void LoadFireUpdate();
 void NewWaveAnimation(Vector2* t);
