@@ -3,6 +3,7 @@
 #include <bits/stdc++.h>
 #include "utils.h"
 #include "game.h"
+//#define logFile cout
 
 void Ranking::UpdatePoints() {
     lastRankChange = ((points - currP) / abs(points - currP)) * log_ab(abs(points - currP), 1.25);
@@ -88,12 +89,6 @@ void InitSkillButtons() {
     }
 }
 
-void InitGrenades() {
-    for (int i = 0; i < MAX_BULLETS; i++) {
-        if (grenades[i].state > 20 && i < numGrenade) InitGrenade(&grenades[i]);
-    }
-}
-
 void Reset() {
     numCollectedCoins = numCollectedCoins / 10 * WaveCount;
     WaveCount = 0;
@@ -116,18 +111,27 @@ void Reset() {
 }
 
 void WaveSpawn() {
+    logFile << "-> WaveSpawn()\n";
     waveTick += 1.0f / 600.0f;
+    logFile << "WaveSpawn() -> waveTick = " << waveTick << "\n";
     if (waveTick <= 1.0f) return;
+
+    logFile << "WaveSpawn() -> (WaveCount > NUM_WAVES) ~ " << TextFormat("(%d > %d)", WaveCount, NUM_WAVES) << " -> " << ((WaveCount > NUM_WAVES)? "true\n" : "false\n");
     if (WaveCount > NUM_WAVES) {
         WaveCount = NUM_WAVES;
+        logFile << "WaveSpawn() -> WaveCount = NUM_WAVES = " << NUM_WAVES << "\n";
     } else {
+        logFile << "WaveSpawn() -> WaveCount++ ~ WaveCount = " << WaveCount;
         WaveCount++;
+        logFile << " -> " << WaveCount << "\n";
     }
     int wave = WaveCount;
     for (int i = 0; i < NUM_ENEMY_TYPES; i++) {
         int numE = waveData[wave][i];
         SpawnEnemy(numE, MAPSIZE * GRID_SIZE * 0.5, 500, i);
+        logFile << "WaveSpawn() -> SpawnEnemy(" << numE << ", " << MAPSIZE * GRID_SIZE * 0.5 << ", " << 500 << ", " << i << ");\n";
     }
+
     waveTick = 0.0f;
     PlaySound(waveSound);
     pointsLeft++;
@@ -135,7 +139,6 @@ void WaveSpawn() {
 
 void UpdateGameplay() {
     if (bulletShot > 0) accuracy = (float)bulletHits / (float)bulletShot;
-    cout << bulletHits << " - " << bulletShot << "\n";
     killCountImageCooldown = max(killCountImageCooldown - 1, 0);
     killCount = 0;
     Vector2 mousePosition = GetMousePosition();
@@ -145,7 +148,6 @@ void UpdateGameplay() {
     if (IsKeyPressed(KEY_T)) ToggleFullscreen();
     if (IsKeyPressed(KEY_P)) pointsLeft++;
     InitSkillButtons();
-    InitGrenades();
     UpdateGrenades();
     UpdateShop();
     if (IsKeyPressed(KEY_ESCAPE)) gameState = GameState::PAUSE;
@@ -156,15 +158,28 @@ void UpdateGameplay() {
     UpdatePlayer();
     UpdateBullets();
     UpdateEnemies();
+    UpdateDamageTexts();
     UpdateCoins();
 }
 
-void UpdateDamageText(DamageText* damageText) {
-    damageText->alpha -= 2;
-    damageText->position.y -= 2;
+void UpdateDamageTexts() {
+    for (auto damageTextIt = damageTexts.begin(); damageTextIt != damageTexts.end(); ) {
+        DamageText& damageText = *damageTextIt;
+        //cout << " (" << damageText.position.x << ", " << damageText.position.y << ") -> " << damageText.alpha << "\n";
+        damageText.alpha -= 2;
+        damageText.position.y -= 2;
+        if (damageText.alpha <= 0) {
+            damageTextIt = damageTexts.erase(damageTextIt);
+            --numDamageTexts;
+        } else {
+            damageTextIt++;
+        }
+    }
+    //cout << "======\n";
 }
 
 void SpawnEnemy(int numberEnemy, int radius, int radiusRandom, int enemyType) {
+    logFile << "-> SpawnEnemy(args: ...)\n";
     for (int i = 0; i < numberEnemy; i++) {
         Vector2 position;
         do {
@@ -174,17 +189,30 @@ void SpawnEnemy(int numberEnemy, int radius, int radiusRandom, int enemyType) {
         } while (!IsPositionFree(position, objs, enemyTypes[enemyType].radius));
 
         Enemy enemy;
+
+        logFile << "Init enemy #" << i << "\n";
         enemy.position = position;
+        logFile << "Enemy #" << i << " postion " << position.x << ", " << position.y << "\n";
         enemy.radius = enemyTypes[enemyType].radius;
+        logFile << "Enemy #" << i << " radius " << enemy.radius << "\n";
         enemy.color = enemyTypes[enemyType].color;
+        logFile << "Enemy #" << i << " color " << (enemy.color.r*256 + enemy.color.g)*256 + enemy.color.b << "\n";
         enemy.healthMax = enemyTypes[enemyType].healthMax;
+        logFile << "Enemy #" << i << " healthMax " << enemy.healthMax << "\n";
         enemy.health = enemy.healthMax;
+        logFile << "Enemy #" << i << " health " << enemy.health << "\n";
         enemy.direction = { 0, 0 };
+        logFile << "Enemy #" << i << " direction " << enemy.direction.x << ", " << enemy.direction.y << "\n";
         enemy.type = enemyType;
+        logFile << "Enemy #" << i << " type " << enemy.type << "\n";
         enemy.speed = enemyTypes[enemyType].speed;
+        logFile << "Enemy #" << i << " speed " << enemy.speed << "\n";
         enemy.damage = enemyTypes[enemyType].damage;
+        logFile << "Enemy #" << i << " damage " << enemy.damage << "\n";
+
 
         enemies.push_back(enemy);
+        logFile << "Pushed enemy #" << i << " onto deque<Enemy> enemies.\n";
         numEnemies++;
     }
 }
@@ -198,7 +226,7 @@ void UpdateEnemies() {
 
         float enemyRadius = (float)enemy.radius;
         // Collision with other enemies
-        for (auto otherIt = enemies.begin(); otherIt != enemies.end(); ++otherIt) {
+        for (auto otherIt = enemies.begin(); otherIt != enemies.end(); otherIt++) {
             if (it == otherIt) continue;
             if (CheckCollisionCircles(enemy.position, enemy.radius, otherIt->position, otherIt->radius)) {
                 Vector2 distance = Vector2Subtract(enemy.position, otherIt->position);
@@ -246,10 +274,11 @@ void UpdateEnemies() {
         }
 
         // Grenade collision
-        for (int j = 0; j < MAX_GRENADES; j++) {
-            if (CheckCollisionCircles(enemy.position, 10, grenades[j].position, grenades[j].radius) &&
-                grenades[j].state < 25 && grenades[j].state > 10) {
-                float damage = Vector2Distance(grenades[j].position, playerPosition) / 10.0f * (1 + skills[1].level / 2);
+        for (auto grenadeIt = grenades.begin(); grenadeIt != grenades.end(); grenadeIt++) {
+            Grenade grenade = *grenadeIt;
+            if (CheckCollisionCircles(enemy.position, 10, grenade.position, grenade.radius) &&
+                grenade.state < 25 && grenade.state > 10) {
+                float damage = Vector2Distance(grenade.position, playerPosition) / 10.0f * (1 + skills[1].level / 2);
                 enemy.health -= damage;
                 if (numDamageTexts < 50) {
                     DamageText damageText;
@@ -257,7 +286,8 @@ void UpdateEnemies() {
                     damageText.position = enemy.position;
                     damageText.alpha = 255;
                     damageText.color = RED;
-                    damageTexts[numDamageTexts++] = damageText;
+                    damageTexts.push_back(damageText);
+                    numDamageTexts++;
                 }
             }
         }
@@ -277,11 +307,10 @@ void UpdateEnemies() {
                     damageText.position = enemy.position;
                     damageText.alpha = 255;
                     damageText.color = RED;
-                    damageTexts[numDamageTexts] = damageText;
+                    damageTexts.push_back(damageText);
                     numDamageTexts++;
                 }
                 bulletIt = bullets.erase(bulletIt);
-                //bulletHits++;
                 hit = true;
                 break;
             } else {
