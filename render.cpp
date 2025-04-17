@@ -2,6 +2,7 @@
 #include "utils.h"
 #include <raylib.h>
 #include "raymath.h"
+//#define logFile cout
 
 #define RAYGUI_IMPLEMENTATION
 #include "raygui.h"
@@ -12,7 +13,7 @@ void MenuTick() {
         HideCursor();
         gameState = GameState::GAMEPLAY;
         SetMasterVolume(__masterVolume);
-        WaveSpawn();
+        //WaveSpawn();
     }
     GuiSliderBar({screenWidth / 2 - 300 * __ratio, screenHeight / 2 + 75 * __ratio, 700 * __ratio, 20 * __ratio},
                  "Master Volume", TextFormat("%.2f", __masterVolume), &__masterVolume, 0.0f, 1.0f);
@@ -112,11 +113,12 @@ void DrawMap() {
 }
 
 void DrawCoins() {
-    for (int i = 0; i < numCoins; i++) {
-        if (coins[i].active) {
-            float coinRadius = (coins[i].type+1.0f)*5.5f;
+    for (auto coinIt = coins.begin(); coinIt != coins.end(); coinIt++) {
+        Coin coin = *coinIt;
+        if (coin.active) {
+            float coinRadius = (coin.type+1.0f)*5.5f;
             Color coinColor;
-            switch (coins[i].type) {
+            switch (coin.type) {
                 case 0: coinColor = {205, 127, 50, 200}; break;
                 case 1: coinColor = {192, 192, 192, 200}; break;
                 case 2: coinColor = {255, 125, 0, 200}; break;
@@ -125,14 +127,16 @@ void DrawCoins() {
                 case 5: coinColor = {224, 17, 95, 200}; break;
                 default: coinColor = DARKGRAY;
             }
-            DrawCircleLines(coins[i].position.x, coins[i].position.y, coinRadius, BLACK);
-            DrawCircleV(coins[i].position, coinRadius, coinColor);
+            DrawCircleLines(coin.position.x, coin.position.y, coinRadius, BLACK);
+            DrawCircleV(coin.position, coinRadius, coinColor);
         }
     }
 }
 
 void DrawEnemies() {
-    for (const auto& enemy : enemies) {
+    logFile << "-> DrawEnemies()\n";
+    for (auto enemyIt = enemies.begin(); enemyIt != enemies.end(); enemyIt++) {
+        Enemy enemy = *enemyIt;
         DrawCircleV(enemy.position, enemy.radius, enemy.color);
         //DrawText(TextFormat("%d/%d", enemy.health, enemy.healthMax), enemy.position.x, enemy.position.y, 20, RED);
         if (enemy.health < enemy.healthMax) {
@@ -141,11 +145,15 @@ void DrawEnemies() {
         }
     }
 
+
     if (enemies.empty()) {
         if (!temp[0]) waveTick = 0.0f;
         temp[0] = true;
+        logFile << "DrawEnemies() -> Called WaveSpawn()\n";
         WaveSpawn();
+        logFile << "DrawEnemies() -> enemies.size(): " << enemies.size() << "\n";
     }
+    logFile << "<- DrawEnemies()\n";
 }
 
 void DrawObjects() {
@@ -168,16 +176,10 @@ void DrawBullets() {
 }
 
 void DrawDamageTexts() {
-    for (int i = 0; i < numDamageTexts; i++) {
-        UpdateDamageText(&damageTexts[i]);
-        if (damageTexts[i].alpha <= 0) {
-            damageTexts[i] = damageTexts[--numDamageTexts];
-            i--;
-        }
-    }
-    for (int i = 0; i < numDamageTexts; i++) {
-        DrawText(damageTexts[i].text, damageTexts[i].position.x /* __ratio*/ - 5,
-                 damageTexts[i].position.y /* __ratio*/, 10, Fade(damageTexts[i].color, damageTexts[i].alpha));
+    for (auto damageTextIt = damageTexts.begin(); damageTextIt != damageTexts.end(); ++damageTextIt) {
+        DamageText& damageText = *damageTextIt;
+        DrawText(damageText.text, damageText.position.x /* __ratio*/ - 5,
+                 damageText.position.y /* __ratio*/, 10, (Color){200, 0, 0, damageText.alpha});
     }
 }
 
@@ -232,7 +234,6 @@ void DrawCrosshair() {
 void DrawHealthBar(float x, float y, float width, float height, float healthPercent, float hmax, bool drawText) {
 
     float currentWidth = width * (healthPercent / 100.0f);
-    //cout << currentWidth << "\n";
     Color barColor = {(unsigned char)(255 * (100 - healthPercent) / 100), (unsigned char)(255 * healthPercent / 100), 0, 255};
     barColor = ColorContrast(barColor, 0.9f);
     Rectangle rect = {x, y, width, height};
