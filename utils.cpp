@@ -3,6 +3,9 @@
 #include "raymath.h"
 #include <bits/stdc++.h>
 
+
+#define logFile cout
+
 float CoinSize(int coinType) {
     return (coinType+1.0f)*5.5f;
 }
@@ -81,29 +84,33 @@ void ShootSpread(Vector2 position, float shootingAngleDegrees, float spreadDegre
 }
 void SpawnCoin(Vector2 position, int type) {
     if (numCoins < MAX_COINS) {
-        coins[numCoins].position = position;
-        coins[numCoins].active = true;
-        coins[numCoins].type = type;
+        Coin coin;
+        coin.position = position;
+        coin.active = true;
+        coin.type = type;
+        coins.push_back(coin);
         numCoins++;
     }
 }
 void UpdateCoins() {
-    for (int i = 0; i < numCoins; i++) {
-        if (coins[i].active) {
-            if (CheckCollisionCircles({playerX, playerY}, playerRadius * skills[0].level * 2, coins[i].position, CoinSize(coins[i].type))) {
-                Vector2 distance = Vector2Subtract({playerX, playerY}, coins[i].position);
-                float length = Vector2Length(distance);
-                float overlap = (playerRadius + coins[i].type) - length;
-                Vector2 normal = Vector2Scale(Vector2Normalize(distance), 2.0f / overlap);
-                coins[i].position = Vector2Subtract(coins[i].position, normal);
-            }
-            if (CheckCollisionCircles({playerX, playerY}, playerRadius * skills[0].level, coins[i].position, CoinSize(coins[i].type))) {
-                numCollectedCoins += 10 * pow(3, coins[i].type);
-                points += 10 * pow(3, coins[i].type) * WaveCount * WaveCount;
-                coins[i].active = false;
-            }
+    for (auto coinIt = coins.begin(); coinIt != coins.end(); ) {
+        Coin& coin = *coinIt;
+        if (CheckCollisionCircles({playerX, playerY}, playerRadius * skills[0].level * 2, coin.position, CoinSize(coin.type))) {
+            Vector2 distance = Vector2Subtract({playerX, playerY}, coin.position);
+            float length = Vector2Length(distance);
+            float overlap = (playerRadius + coin.type) - length;
+            Vector2 normal = Vector2Scale(Vector2Normalize(distance), 2.0f / overlap);
+            coin.position = Vector2Subtract(coin.position, normal);
+        }
+        if (CheckCollisionCircles({playerX, playerY}, playerRadius * skills[0].level, coin.position, CoinSize(coin.type))) {
+            numCollectedCoins += 10 * pow(3, coin.type);
+            points += 10 * pow(3, coin.type) * WaveCount * WaveCount;
+            coinIt = coins.erase(coinIt);
+        } else {
+            coinIt++;
         }
     }
+
 }
 void UpdateShop() {
     Vector2 mousePosition = GetMousePosition();
@@ -131,47 +138,43 @@ void BuyItem(Item* item, int id) {
         }
     }
 }
-void InitGrenade(Grenade* grenade) {
-    grenade->position = {9999999.0f, 9999999.0f};
-    grenade->velocity = {0.0f, 0.0f};
-    grenade->radius = 1.0f;
-    grenade->color = BLACK;
-    grenade->state = 26;
-}
-void UpdateGrenade(Grenade* grenade) {
-    grenade->position.x += grenade->velocity.x;
-    grenade->position.y += grenade->velocity.y;
-    grenade->velocity.x *= 0.98f;
-    grenade->velocity.y *= 0.98f;
-    if (Vector2Length(grenade->velocity) < 0.5) {
-        if (grenade->state == 10) {
-            PlaySound(boom);
-            grenade->color = {50, 0, 0, 100};
-        }
-        grenade->state++;
-    }
-    if (grenade->state > 10 && grenade->state < 20 && grenade->state % 2 == 0) {
-        grenade->radius *= 1 + log2(grenade->radius) / 4;
-    }
-    if (grenade->state == 25) {
-        grenade->radius = 0.01f;
-        numGrenade--;
-        InitGrenade(grenade);
-    }
-}
 void UpdateGrenades() {
+
     if (IsMouseButtonPressed(2) && grenadeLeft > 0) {
         grenadeLeft--;
         numGrenade++;
-        grenades[numGrenade].position = {playerX, playerY};
-        grenades[numGrenade].state = 0;
-        grenades[numGrenade].radius = 10.0f;
-        grenades[numGrenade].velocity = {sinf((playerPointerAngle + 135) * DEG2RAD) * 5, -cosf((playerPointerAngle + 135) * DEG2RAD) * 5};
+        Grenade grenade;
+        grenade.position = {playerX, playerY};
+        grenade.state = 0;
+        grenade.radius = 10.0f;
+        grenade.velocity = {sinf((playerPointerAngle + 135) * DEG2RAD) * 5, -cosf((playerPointerAngle + 135) * DEG2RAD) * 5};
+        grenades.push_back(grenade);
     }
-    for (int i = 0; i < MAX_BULLETS; i++) {
-        UpdateGrenade(&grenades[i]);
-        if (CheckCollisionCircles({playerX, playerY}, playerRadius, grenades[i].position, grenades[i].radius) && grenades[i].state > 10) {
+
+    for (auto grenadeIt = grenades.begin(); grenadeIt != grenades.end(); ) {
+        Grenade& grenade = *grenadeIt;
+        grenade.position.x += grenade.velocity.x;
+        grenade.position.y += grenade.velocity.y;
+        grenade.velocity.x *= 0.98f;
+        grenade.velocity.y *= 0.98f;
+        if (Vector2Length(grenade.velocity) < 0.5) {
+            if (grenade.state == 10) {
+                PlaySound(boom);
+                grenade.color = {50, 0, 0, 100};
+            }
+            grenade.state++;
+        }
+        if (grenade.state > 10 && grenade.state < 20 && grenade.state % 2 == 0) {
+            grenade.radius *= 1 + log2(grenade.radius) / 4;
+        }
+        if (CheckCollisionCircles({playerX, playerY}, playerRadius, grenade.position, grenade.radius) && grenade.state > 10) {
             playerHealth -= 100 * (1 + skills[1].level / 2);
+        }
+        if (grenade.state == 25) {
+            numGrenade--;
+            grenadeIt = grenades.erase(grenadeIt);
+        } else {
+            grenadeIt++;
         }
     }
 }
